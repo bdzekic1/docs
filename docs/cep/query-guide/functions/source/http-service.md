@@ -3,7 +3,7 @@ title: http-service (Source)
 ---
 
 The http-service source receives POST requests via HTTP and HTTPS
-protocols in format such as `text`, `XML` and `JSON` and sends responses
+protocols in format such as `text` and `JSON` and sends responses
 via its corresponding http-service-response sink correlated through a
 unique `source.id`.
 
@@ -56,33 +56,17 @@ are received from authorized users/systems.
 | keyStoreLocation               | The default keystore file path.                 | \`\${carbon.home}/resources/security/gdncarbon.jks\` | Path to \`.jks\` file       |
 | keyStorePassword               | The default keystore password.                  | gdncarbon                                            | Keystore password as string |
 
-## Example 1
+## Example
 
-    CREATE SOURCE AddStream WITH (type='http-service', receiver.url='http://localhost:5005/add', source.id='adder', map.type='json, map.attributes="messageId='trp:messageId', value1='$.event.value1', value2='$.event.value2'") (messageId string, value1 long, value2 long);
+    @App:name('Sample-HTTP-Source')
+    @App:description("This application shows how to receive POST requests via Stream Workers API.")
+    @App:qlVersion('2')
 
-    CREATE SINK ResultStream WITH (type='http-service-response', source.id='adder', message.id='{{messageId}}', map.type='json') (messageId string, results long);
+    CREATE SOURCE AddStream WITH (type='http-service', source.id='adder', map.type='json', map.attributes.messageId='trp:messageId', map.attributes.value1='$.event.value1', map.attributes.value2='$.event.value2') (messageId string, value1 long, value2 long);
+
+    CREATE SINK ResultStream WITH (type='http-service-response', source.id='adder', message.id='{{messageId}}', map.type = 'json') (messageId string, results long);
 
     @info(name = 'query1')
     insert into ResultStream
     select messageId, value1 + value2 as results
     from AddStream;
-
-Above sample listens events on `http://localhost:5005/stocks` URL for
-JSON messages on the format:
-
-    {
-      "event": {
-        "value1": 3,
-        "value2": 4
-      }
-    }
-
-Map the vents into AddStream, process the events through query `query1`,
-and sends the results produced on ResultStream via http-service-response
-sink on the message format:
-
-    {
-      "event": {
-        "results": 7
-      }
-    }
